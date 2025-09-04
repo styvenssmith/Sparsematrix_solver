@@ -7,7 +7,26 @@ class CSRMatrix:
         self.indices = np.array(col_indices)
         self.index_ptr = np.array(row_ptr)
         self.shape = shape
-        
+    
+    def __getitem__(self, key):
+      row, col = key
+    # Check if row is within bounds
+      if row < 0 or row >= self.shape[0]:
+          raise IndexError(f"Row index {row} out of range")
+      if col < 0 or col >= self.shape[1]:
+          raise IndexError(f"Column index {col} out of range")
+    
+    # Get the start and end indices for the given row
+      start = self.index_ptr[row]
+      end = self.index_ptr[row+1]
+    
+    # Iterate over the non-zero elements in this row
+      for idx in range(start, end):
+          if self.indices[idx] == col:  # Check if column matches
+              return self.data[idx]     # Return the value
+    
+    # If no non-zero element found at (row, col), return 0
+      return 0
 
   #allows us to construct a CSR object without using the __init__ constructor
     @classmethod
@@ -52,6 +71,25 @@ class CSRMatrix:
 
 
 
+    #convert to dense matrix
+    def to_dense(self):
+
+      dense = np.zeros(self.shape)
+      for i in range(self.shape[0]):
+        start=self.index_ptr[i]
+        end = self.index_ptr[i+1]
+        for j in range(start, end):
+          dense[i, self.indices[j]] =self.data[j]
+      return dense
+
+
+    #perform matrix by matrix multiplication
+    def matmat(self, matrix):
+
+      
+
+
+
 
 
 #test. [1, 0], [0, 2]
@@ -69,4 +107,8 @@ matrix = [
 
 obj2 = CSRMatrix.from_dense(matrix)
 
-obj2.dot([1,2,3,4])
+dot_product= obj2.dot([1,2,3,4])
+
+obj= CSRMatrix(data, indices,index_ptr, shape)
+
+obj2[1,1]
