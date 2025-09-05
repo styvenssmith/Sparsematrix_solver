@@ -2,12 +2,12 @@ import numpy as np
 
 class CSRMatrix:
     def __init__(self, values, col_indices, row_ptr, shape):
-        
+
         self.data = np.array(values)
         self.indices = np.array(col_indices)
         self.index_ptr = np.array(row_ptr)
         self.shape = shape
-    
+
     def __getitem__(self, key):
       row, col = key
     # Check if row is within bounds
@@ -15,23 +15,23 @@ class CSRMatrix:
           raise IndexError(f"Row index {row} out of range")
       if col < 0 or col >= self.shape[1]:
           raise IndexError(f"Column index {col} out of range")
-    
+
     # Get the start and end indices for the given row
       start = self.index_ptr[row]
       end = self.index_ptr[row+1]
-    
+
     # Iterate over the non-zero elements in this row
       for idx in range(start, end):
           if self.indices[idx] == col:  # Check if column matches
               return self.data[idx]     # Return the value
-    
+
     # If no non-zero element found at (row, col), return 0
       return 0
 
   #allows us to construct a CSR object without using the __init__ constructor
     @classmethod
     def from_dense(cls, data):
-      
+
       rows, cols = len(data), len(data[0])
       vals = []
       col_indices = []
@@ -85,8 +85,27 @@ class CSRMatrix:
 
     #perform matrix by matrix multiplication
     def matmat(self, matrix):
-
       
+      #if the col len of our csr matrix is not matching the rows of the new matrix, cannot be done
+      if self.shape[1]!=len(matrix):
+        raise ValueError("dimensions do not match")
+      
+      new_matrix = np.zeros((self.shape[0], len(matrix[0])))
+
+      for i in range(self.shape[0]):
+        start = self.index_ptr[i]
+        end = self.index_ptr[i+1]
+        for idx in range(start, end):
+          j=self.indices[idx]
+          value =self.data[idx]
+
+          for k in range(len(matrix[0])):
+            new_matrix[i,  k]+=value*matrix[j][k]
+
+      return new_matrix
+
+
+
 
 
 
@@ -101,7 +120,7 @@ shape = (2, 2)
 
 matrix = [
     [5, 0, 0, 1],  # row 0
-    [0, 8, 0, 0],  # row 1  
+    [0, 8, 0, 0],  # row 1
     [0, 0, 3, 0]   # row 2
 ]
 
@@ -111,4 +130,8 @@ dot_product= obj2.dot([1,2,3,4])
 
 obj= CSRMatrix(data, indices,index_ptr, shape)
 
-obj2[1,1]
+n = [[1,0,0],
+     [2,0,0],
+     [3,0,0],
+     [4,0,0]]
+obj2.matmat(n)
