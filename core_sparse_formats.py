@@ -83,7 +83,7 @@ class CSRMatrix:
       return dense
 
 
-    #perform matrix by matrix multiplication
+    #perform matrix by matrix multiplications
     def matmat(self, matrix):
       
       #if the col len of our csr matrix is not matching the rows of the new matrix, cannot be done
