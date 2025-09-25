@@ -27,15 +27,43 @@ class CSCMatrix:
 
 
   def to_csr(self):
+    nnz = len(self.data)
+    num_rows = self.shape[0]
+    num_cols = self.shape[1]
 
+    # Count the number of nonzeros per row
+    row_count = [0] * num_rows
+    for i in range(nnz):
+        row = self.indices[i]
+        row_count[row] += 1
 
+    # Build the row pointer for CSR
+    csr_row_ptr = [0] * (num_rows + 1)
+    for i in range(num_rows):
+        csr_row_ptr[i + 1] = csr_row_ptr[i] + row_count[i]
 
+    # Initialize arrays for CSR
+    csr_data = [0] * nnz
+    csr_col_indices = [0] * nnz
+    
+    # Temporary array to track current position for each row
+    current_pos = csr_row_ptr[:]  # Copy of csr_row_ptr
 
-
-
-
-
-
+    # Convert CSC to CSR
+    for col in range(num_cols):
+        start = self.col_ptr[col]
+        end = self.col_ptr[col + 1]
+        for idx in range(start, end):
+            row = self.indices[idx]
+            val = self.data[idx]
+            
+            # Place this element in the correct position for its row
+            pos = current_pos[row]
+            csr_data[pos] = val
+            csr_col_indices[pos] = col
+            current_pos[row] += 1
+    
+    return csr_data, csr_row_ptr, csr_col_indices
 
 
 
@@ -65,11 +93,16 @@ class CSCMatrix:
     for j in range(self.shape[1]):
       start, end =  self.col_ptr[i], self.col_ptr[i+1]
       for idx in range(start, end):
-        i= self.row_indices[idx]
+        i= self.indices[idx]
         dense[i, j] = self.values[idx]
     return dense
 
 
+
+
+
+
+#CSR. MATRIX CLASS
 
 class CSRMatrix:
     def __init__(self, values, col_indices, row_ptr, shape):
@@ -97,6 +130,11 @@ class CSRMatrix:
 
     # If no non-zero element found at (row, col), return 0
       return 0
+
+
+
+    
+
 
   #allows us to construct a CSR object without using the __init__ constructor
     @classmethod
@@ -141,8 +179,46 @@ class CSRMatrix:
 
   #need to work on this
     def to_csc(self):
-       if not hasattr(self, 'shape') or not hasattr(self, 'data') or not hasattr(self, 'indices')or not hasattr(self, 'index_ptr'):
+      if not hasattr(self, 'shape') or not hasattr(self, 'data') or not hasattr(self, 'indices')or not hasattr(self, 'index_ptr'):
           raise ValueError('Matrix is not in proper CSR format')
+
+      nnz = len(self.data)
+      num_rows = self.shape[0]
+      num_cols = self.shape[1]
+
+      #count the number of elements per column
+      num_per_col = [0]*num_cols
+      for i in range(nnz):
+        num_per_col[self.indices[i]]+=1
+      
+      #build csc col_ptr 
+      csc_col_ptr=[0]*(num_cols+1)
+      for i in range(num_cols):
+        csc_col_ptr[i+1] = csc_col_ptr[i]+num_per_col[i]
+
+      csc_data = [0]*nnz
+      csc_row_index =[0]*nnz
+
+      csc_temp = csc_col_ptr[:]
+
+      for row in range(num_rows):
+        start= self.index_ptr[row]
+        end = self.index_ptr[row+1]
+        for idx in range(start, end):
+          col = self.indices[idx]
+          value = self.data[idx]
+
+          #place in correct column
+          pos = csc_temp[col]
+          csc_data[pos] = value
+          csc_row_index[pos]= row
+          csc_temp[col]+=1
+      return csc_data, csc_row_index, csc_col_ptr
+
+
+
+
+      
 
 
 
@@ -229,6 +305,7 @@ matrix = [
     [0, 0, 3, 0]   # row 2
 ]
 
-obj2 = CSCMatrix.from_dense(matrix)
+obj = CSRMatrix.from_dense(matrix)
 
-obj2.indices
+a,b,c = obj.to_csc()
+print(a, b, c)
