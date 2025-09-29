@@ -76,12 +76,12 @@ class CSCMatrix:
         raise IndexError(f"Column index {col} out of range")
 
     # Get the start and end indices for the given row
-    start = self.index_ptr[row]
-    end = self.index_ptr[row+1]
+    start = self.col_ptr[row]
+    end = self.col_ptr[row+1]
 
     # Iterate over the non-zero elements in this row
     for idx in range(start, end):
-        if self.indices[idx] == col:  # Check if column matches
+        if self.indices[idx] == row:  # Check if column matches
             return self.data[idx]     # Return the value
 
     # If no non-zero element found at (row, col), return 0
@@ -94,7 +94,7 @@ class CSCMatrix:
       start, end =  self.col_ptr[i], self.col_ptr[i+1]
       for idx in range(start, end):
         i= self.indices[idx]
-        dense[i, j] = self.values[idx]
+        dense[i, j] = self.data[idx]
     return dense
 
 
@@ -177,7 +177,7 @@ class CSRMatrix:
 
       return ans
 
-  #need to work on this
+ 
     def to_csc(self):
       if not hasattr(self, 'shape') or not hasattr(self, 'data') or not hasattr(self, 'indices')or not hasattr(self, 'index_ptr'):
           raise ValueError('Matrix is not in proper CSR format')
@@ -220,11 +220,6 @@ class CSRMatrix:
 
       
 
-
-
-
-
-
     #convert to dense matrix
     def to_dense(self):
 
@@ -244,7 +239,7 @@ class CSRMatrix:
       if not hasattr(matrix, 'shape') and not hasattr(matrix, '__len__'):
          raise TypeError("Input must be a matrix or 2d array")
 
-      if hasattr(matrix, 'shapses'):
+      if hasattr(matrix, 'shapes'):
          if len(matrix.shape)!=2:
             raise ValueError("input matrix must be 2-dimensional")
          if self.shape[1]!=matrix.shape[0]:
@@ -288,6 +283,55 @@ class CSRMatrix:
 
 
 
+class COOMatrix:
+
+  def __init__(self, data, row, col, shape):
+
+    self.data = np.array(data)
+    self.row = np.array(row)
+    self.col = np.array(col)
+
+
+  @classmethod
+  def from_dense(cls, data):
+    #need to add error checking
+    #number of rows, columns
+    r, c = len(data), len(data[0])
+
+    data_values = []
+    cols = []
+    rows = []
+
+    for i in range(r):
+      for j in range(c):
+        if(data[i][j]!=0):
+          data_values.append(data[i][j])
+          cols.append(j)
+          rows.append(i)
+    
+    return cls(data_values, rows, cols, (r, c))
+
+
+
+  #convert into dense matrix
+  def to_dense(self):
+
+    #rows and cols
+    r = len(self.rows)
+    
+    arr = [0* _ for __ in range(r)]
+
+    for i in range(r):
+      rows = self.row[i]
+      cols = self.cols[i]
+      vals = self.data[i]
+      arr[rows][cols] = vals
+    return arr
+    
+    
+
+
+    
 
 
 
