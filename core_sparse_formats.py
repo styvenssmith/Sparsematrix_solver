@@ -24,6 +24,36 @@ class CSCMatrix:
       col_ptr.append(temp+col_ptr[-1])
     return cls(vals, row_indices, col_ptr, (rows, cols))
 
+#inner product for CSC matrix
+
+  def dot(self, vec):
+    if len(vec) !=self.shape[1]:
+      raise ValueError("The dimensions do not match")
+
+    arr = [0]*self.shape[1]
+
+    for i in range(self.shape[1]):
+      start = self.col_ptr[i]
+      end= self.col_ptr[i+1] 
+      for idx in range(start, end):
+        arr[idx]+=self.data[idx]*vec[self.indices[idx]]
+
+    return arr
+
+
+  def matmat(self, matrix):
+
+    if len(matrix[0])!=self.shape[1]:
+      raise ValueError("The dimensions do not match")
+
+    num_rows= len(matrix)
+    num_cols = len(matrix[0])
+
+    if num_rows==0 or num_cols==0:
+      raise ValueError("The matrix cannot be empty")
+
+    
+
 
 
   def to_csr(self):
@@ -351,5 +381,4 @@ matrix = [
 
 obj = CSRMatrix.from_dense(matrix)
 
-a,b,c = obj.to_csc()
-print(a, b, c)
+obj.dot([1,2,3,4])
