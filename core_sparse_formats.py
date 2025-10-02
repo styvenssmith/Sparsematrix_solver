@@ -43,7 +43,7 @@ class CSCMatrix:
 
   def matmat(self, matrix):
 
-    if len(matrix[0])!=self.shape[1]:
+    if len(matrix)!=self.shape[1]:
       raise ValueError("The dimensions do not match")
 
     num_rows= len(matrix)
@@ -51,6 +51,24 @@ class CSCMatrix:
 
     if num_rows==0 or num_cols==0:
       raise ValueError("The matrix cannot be empty")
+
+    arr = np.zeros((self.shape[0], num_cols))
+
+    for col in range(self.shape[1]):
+      start = self.col_ptr[col]
+      end= self.col_ptr[col+1]
+      for i in range(start, end):
+        row_ = self.indices[i]
+        value= self.data[i]
+        
+        for k in range(num_cols):
+          arr[row_,k]+=value*matrix[col][k]
+
+    return arr
+        
+
+        
+
 
     
 
@@ -293,7 +311,7 @@ class CSRMatrix:
 
          matrix_array=np.array(matrix)
 
-      result = np.zeros((self.shape[0], n_cols))
+      result = np.zeros((self.shape[1], n_cols))
 
 
       #if the col len of our csr matrix is not matching the rows of the new matrix, cannot be done
