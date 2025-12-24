@@ -1,5 +1,6 @@
 import numpy as np
 
+'''
 class CSCMatrix:
   def __init__(self,values,row_indices, col_ptr, shape):
     self.data = np.array(values)
@@ -147,7 +148,7 @@ class CSCMatrix:
 
 
 
-
+'''
 
 
 #CSR. MATRIX CLASS
@@ -156,8 +157,14 @@ class CSRMatrix:
     def __init__(self, values, col_indices, row_ptr, shape):
         self.data = np.array(values)
         self.indices = np.array(col_indices)
-        self.index_ptr = np.array(row_ptr)
+        self.indptr = np.array(row_ptr)
         self.shape = shape
+
+        assert len(self.data)==len(self.indices)
+        assert self.indptr[-1]==len(self.data)
+        assert len(self.indptr)==self.shape[0]+1
+
+
 
     def __getitem__(self, key):
       row, col = key
@@ -168,8 +175,8 @@ class CSRMatrix:
           raise IndexError(f"Column index {col} out of range")
 
     # Get the start and end indices for the given row
-      start = self.index_ptr[row]
-      end = self.index_ptr[row+1]
+      start = self.indptr[row]
+      end = self.indptr[row+1]
 
     # Iterate over the non-zero elements in this row
       for idx in range(start, end):
@@ -206,7 +213,7 @@ class CSRMatrix:
 
 
     # allows us to multiply the matrix by vectors
-    def dot(self, vec):
+    def matvec(self, vec):
 
         #check that the columns of the matrix matches the rows of the vector
 
@@ -218,8 +225,8 @@ class CSRMatrix:
       ans = np.zeros(self.shape[0])
 
       for i in range(self.shape[0]):
-        start = self.index_ptr[i]
-        end = self.index_ptr[i+1]
+        start = self.indptr[i]
+        end = self.indptr[i+1]
         for j in range(start, end):
           ans[i]+=self.data[j]*vec[self.indices[j]]
 
@@ -227,7 +234,7 @@ class CSRMatrix:
 
  
     def to_csc(self):
-      if not hasattr(self, 'shape') or not hasattr(self, 'data') or not hasattr(self, 'indices')or not hasattr(self, 'index_ptr'):
+      if not hasattr(self, 'shape') or not hasattr(self, 'data') or not hasattr(self, 'indices')or not hasattr(self, 'indptr'):
           raise ValueError('Matrix is not in proper CSR format')
 
       nnz = len(self.data)
@@ -250,8 +257,8 @@ class CSRMatrix:
       csc_temp = csc_col_ptr[:]
 
       for row in range(num_rows):
-        start= self.index_ptr[row]
-        end = self.index_ptr[row+1]
+        start= self.indptr[row]
+        end = self.indptr[row+1]
         for idx in range(start, end):
           col = self.indices[idx]
           value = self.data[idx]
@@ -264,17 +271,13 @@ class CSRMatrix:
       return csc_data, csc_row_index, csc_col_ptr
 
 
-
-
-      
-
     #convert to dense matrix
     def to_dense(self):
 
       dense = np.zeros(self.shape)
       for i in range(self.shape[0]):
-        start=self.index_ptr[i]
-        end = self.index_ptr[i+1]
+        start=self.indptr[i]
+        end = self.indptr[i+1]
         for j in range(start, end):
           dense[i, self.indices[j]] =self.data[j]
       return dense
@@ -311,14 +314,14 @@ class CSRMatrix:
 
          matrix_array=np.array(matrix)
 
-      result = np.zeros((self.shape[1], n_cols))
+      result = np.zeros((self.shape[0], n_cols))
 
 
       #if the col len of our csr matrix is not matching the rows of the new matrix, cannot be done
 
       for i in range(self.shape[0]):
-        start = self.index_ptr[i]
-        end = self.index_ptr[i+1]
+        start = self.indptr[i]
+        end = self.indptr[i+1]
         for idx in range(start, end):
           j=self.indices[idx]
           value =self.data[idx]
@@ -329,7 +332,7 @@ class CSRMatrix:
       return result
 
 
-
+'''
 
 class COOMatrix:
 
@@ -376,27 +379,30 @@ class COOMatrix:
       arr[rows][cols] = vals
     return arr
     
-    
+'''    
 
 
     
 
 
 
+A = CSRMatrix.from_dense([
+    [4, 0, 1],
+    [0, 0, 0],
+    [2, 0, 3]
+])
 
-#test. [1, 0], [0, 2]
+x = np.array([1, 2, 3])
 
-data = [1, 2]
-indices = [0, 1]
-index_ptr = [0,  1, 2]
-shape = (2, 2)
+assert np.allclose(A.matvec(x), A.to_dense() @ x)
+assert A[0,0] == 4
+assert A[0,1] == 0
+assert A[2,2] == 3
+result = obj.matvec([1,2,3,4])
+print(result)
 
-matrix = [
-    [5, 0, 0, 1],  # row 0
-    [0, 8, 0, 0],  # row 1
-    [0, 0, 3, 0]   # row 2
-]
+dense = np.array(matrix)
+vec = np.array([1,2,3,4])
 
-obj = CSRMatrix.from_dense(matrix)
-
-obj.dot([1,2,3,4])
+print(obj.matvec(vec))
+print(dense @ vec)
