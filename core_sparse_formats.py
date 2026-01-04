@@ -1,9 +1,9 @@
 import numpy as np
 
-'''
 class CSCMatrix:
   def __init__(self,values,row_indices, col_ptr, shape):
     self.data = np.array(values)
+    #row indices
     self.indices = np.array(row_indices)
     self.col_ptr = np.array(col_ptr)
     self.shape = shape
@@ -27,17 +27,23 @@ class CSCMatrix:
 
 #inner product for CSC matrix
 
+
   def dot(self, vec):
     if len(vec) !=self.shape[1]:
       raise ValueError("The dimensions do not match")
 
-    arr = [0]*self.shape[1]
+    arr = [0]*self.shape[0]
 
+    # loop throught the columns
     for i in range(self.shape[1]):
       start = self.col_ptr[i]
-      end= self.col_ptr[i+1] 
+      end= self.col_ptr[i+1]
+      #loop through the number of elements per column
+      # this essentially represents the index of the rows
       for idx in range(start, end):
-        arr[idx]+=self.data[idx]*vec[self.indices[idx]]
+        #row indices
+        row = self.indices[idx]
+        arr[row]+=self.data[idx]*vec[i]
 
     return arr
 
@@ -61,17 +67,12 @@ class CSCMatrix:
       for i in range(start, end):
         row_ = self.indices[i]
         value= self.data[i]
-        
+
         for k in range(num_cols):
           arr[row_,k]+=value*matrix[col][k]
 
     return arr
-        
 
-        
-
-
-    
 
 
 
@@ -94,7 +95,7 @@ class CSCMatrix:
     # Initialize arrays for CSR
     csr_data = [0] * nnz
     csr_col_indices = [0] * nnz
-    
+
     # Temporary array to track current position for each row
     current_pos = csr_row_ptr[:]  # Copy of csr_row_ptr
 
@@ -105,14 +106,15 @@ class CSCMatrix:
         for idx in range(start, end):
             row = self.indices[idx]
             val = self.data[idx]
-            
+
             # Place this element in the correct position for its row
             pos = current_pos[row]
             csr_data[pos] = val
             csr_col_indices[pos] = col
             current_pos[row] += 1
-    
-    return csr_data, csr_row_ptr, csr_col_indices
+
+    return CSRMatrix(csr_data, csr_col_indices, csr_row_ptr, self.shape)
+
 
 
 
@@ -125,8 +127,8 @@ class CSCMatrix:
         raise IndexError(f"Column index {col} out of range")
 
     # Get the start and end indices for the given row
-    start = self.col_ptr[row]
-    end = self.col_ptr[row+1]
+    start = self.col_ptr[col]
+    end = self.col_ptr[col+1]
 
     # Iterate over the non-zero elements in this row
     for idx in range(start, end):
@@ -140,7 +142,7 @@ class CSCMatrix:
   def to_dense(self):
     dense = np.zeros(self.shape)
     for j in range(self.shape[1]):
-      start, end =  self.col_ptr[i], self.col_ptr[i+1]
+      start, end =  self.col_ptr[j], self.col_ptr[j+1]
       for idx in range(start, end):
         i= self.indices[idx]
         dense[i, j] = self.data[idx]
@@ -148,7 +150,7 @@ class CSCMatrix:
 
 
 
-'''
+
 
 
 #CSR. MATRIX CLASS
@@ -157,14 +159,8 @@ class CSRMatrix:
     def __init__(self, values, col_indices, row_ptr, shape):
         self.data = np.array(values)
         self.indices = np.array(col_indices)
-        self.indptr = np.array(row_ptr)
+        self.index_ptr = np.array(row_ptr)
         self.shape = shape
-
-        assert len(self.data)==len(self.indices)
-        assert self.indptr[-1]==len(self.data)
-        assert len(self.indptr)==self.shape[0]+1
-
-
 
     def __getitem__(self, key):
       row, col = key
@@ -175,8 +171,8 @@ class CSRMatrix:
           raise IndexError(f"Column index {col} out of range")
 
     # Get the start and end indices for the given row
-      start = self.indptr[row]
-      end = self.indptr[row+1]
+      start = self.index_ptr[row]
+      end = self.index_ptr[row+1]
 
     # Iterate over the non-zero elements in this row
       for idx in range(start, end):
@@ -188,7 +184,7 @@ class CSRMatrix:
 
 
 
-    
+
 
 
   #allows us to construct a CSR object without using the __init__ constructor
@@ -213,7 +209,7 @@ class CSRMatrix:
 
 
     # allows us to multiply the matrix by vectors
-    def matvec(self, vec):
+    def dot(self, vec):
 
         #check that the columns of the matrix matches the rows of the vector
 
@@ -225,16 +221,16 @@ class CSRMatrix:
       ans = np.zeros(self.shape[0])
 
       for i in range(self.shape[0]):
-        start = self.indptr[i]
-        end = self.indptr[i+1]
+        start = self.index_ptr[i]
+        end = self.index_ptr[i+1]
         for j in range(start, end):
           ans[i]+=self.data[j]*vec[self.indices[j]]
 
       return ans
 
- 
+
     def to_csc(self):
-      if not hasattr(self, 'shape') or not hasattr(self, 'data') or not hasattr(self, 'indices')or not hasattr(self, 'indptr'):
+      if not hasattr(self, 'shape') or not hasattr(self, 'data') or not hasattr(self, 'indices')or not hasattr(self, 'index_ptr'):
           raise ValueError('Matrix is not in proper CSR format')
 
       nnz = len(self.data)
@@ -245,8 +241,8 @@ class CSRMatrix:
       num_per_col = [0]*num_cols
       for i in range(nnz):
         num_per_col[self.indices[i]]+=1
-      
-      #build csc col_ptr 
+
+      #build csc col_ptr
       csc_col_ptr=[0]*(num_cols+1)
       for i in range(num_cols):
         csc_col_ptr[i+1] = csc_col_ptr[i]+num_per_col[i]
@@ -257,8 +253,8 @@ class CSRMatrix:
       csc_temp = csc_col_ptr[:]
 
       for row in range(num_rows):
-        start= self.indptr[row]
-        end = self.indptr[row+1]
+        start= self.index_ptr[row]
+        end = self.index_ptr[row+1]
         for idx in range(start, end):
           col = self.indices[idx]
           value = self.data[idx]
@@ -271,13 +267,17 @@ class CSRMatrix:
       return csc_data, csc_row_index, csc_col_ptr
 
 
+
+
+
+
     #convert to dense matrix
     def to_dense(self):
 
       dense = np.zeros(self.shape)
       for i in range(self.shape[0]):
-        start=self.indptr[i]
-        end = self.indptr[i+1]
+        start=self.index_ptr[i]
+        end = self.index_ptr[i+1]
         for j in range(start, end):
           dense[i, self.indices[j]] =self.data[j]
       return dense
@@ -320,8 +320,8 @@ class CSRMatrix:
       #if the col len of our csr matrix is not matching the rows of the new matrix, cannot be done
 
       for i in range(self.shape[0]):
-        start = self.indptr[i]
-        end = self.indptr[i+1]
+        start = self.index_ptr[i]
+        end = self.index_ptr[i+1]
         for idx in range(start, end):
           j=self.indices[idx]
           value =self.data[idx]
@@ -332,12 +332,13 @@ class CSRMatrix:
       return result
 
 
-'''
+
 
 class COOMatrix:
 
   def __init__(self, data, row, col, shape):
 
+    self.shape = shape
     self.data = np.array(data)
     self.row = np.array(row)
     self.col = np.array(col)
@@ -359,7 +360,7 @@ class COOMatrix:
           data_values.append(data[i][j])
           cols.append(j)
           rows.append(i)
-    
+
     return cls(data_values, rows, cols, (r, c))
 
 
@@ -368,41 +369,104 @@ class COOMatrix:
   def to_dense(self):
 
     #rows and cols
-    r = len(self.rows)
-    
-    arr = [0* _ for __ in range(r)]
+    row_len =self.shape[0]
+    col_len = self.shape[1]
 
-    for i in range(r):
+    arr = np.zeros((row_len, col_len))
+
+    for i in range(len(self.data)):
       rows = self.row[i]
-      cols = self.cols[i]
+      cols = self.col[i]
       vals = self.data[i]
       arr[rows][cols] = vals
     return arr
-    
-'''    
 
 
-    
+  #convert into a CSR matrix
+
+  def to_csr(self):
+    nnz = len(self.data)
+    num_rows, num_cols = self.shape
+
+    # Step 1: count nonzeros per row
+    csr_row_ptr = np.zeros(num_rows + 1, dtype=int)
+    for r in self.row:
+        csr_row_ptr[r + 1] += 1
+
+    # Step 2: prefix sum
+    for i in range(num_rows):
+        csr_row_ptr[i + 1] += csr_row_ptr[i]
+
+    # Step 3: allocate output arrays
+    csr_data = np.zeros(nnz)
+    csr_indices = np.zeros(nnz, dtype=int)
+
+    # Step 4: scatter COO entries into CSR
+    current_pos = csr_row_ptr.copy()
+    for k in range(nnz):
+        r = self.row[k]
+        pos = current_pos[r]
+        csr_data[pos] = self.data[k]
+        csr_indices[pos] = self.col[k]
+        current_pos[r] += 1
+
+    return CSRMatrix(csr_data, csr_indices, csr_row_ptr, self.shape)
 
 
 
-A = CSRMatrix.from_dense([
-    [4, 0, 1],
-    [0, 0, 0],
-    [2, 0, 3]
-])
 
-x = np.array([1, 2, 3])
 
-assert np.allclose(A.matvec(x), A.to_dense() @ x)
-assert A[0,0] == 4
-assert A[0,1] == 0
-assert A[2,2] == 3
-result = obj.matvec([1,2,3,4])
-print(result)
 
-dense = np.array(matrix)
-vec = np.array([1,2,3,4])
+  #convert into a CSC matrix
 
-print(obj.matvec(vec))
-print(dense @ vec)
+
+  def to_csc(self):
+    dic_values = {(row, col): val for row, col, val in zip(self.row, self.col, self.data)}
+    new_values = sorted(dic_values.items(), key=lambda x: (x[0][1], x[0][0]))
+
+    rows = [item[0][0] for item in new_values]
+    cols = [item[0][1] for item in new_values]
+    data = [item[1] for item in new_values]
+
+    # Get the number of columns from the maximum column index
+    if cols:
+        n_cols = max(cols) + 1
+    else:
+        n_cols = 0
+
+    # Initialize col_ptr with zeros (size = n_cols + 1)
+    col_ptr = np.zeros(n_cols + 1, dtype=int)
+
+    # Count non-zero elements per column
+    for col_idx in cols:
+        col_ptr[col_idx + 1] += 1
+
+    # Convert to cumulative sum
+    col_ptr = np.cumsum(col_ptr)
+
+    return data, rows, col_ptr
+
+
+
+
+
+
+
+
+
+
+
+matrix = [
+    [1, 2, 3],
+    [0, 5, 0],
+    [0, 0, 8]
+]
+
+A_coo = COOMatrix.from_dense(matrix)
+
+A_csr = A_coo.to_csr()
+A_csc = A_coo.to_csc()
+
+x = np.array([1, 1, 1])
+
+A_csr
